@@ -21,7 +21,7 @@ This repository was created with the [poetry dependency and packaging manager](h
 - *whitebox_solution/* contains a completed runout analysis using Approach A.
 - *showcase/* is the directory for the Python package implementing Approach B (currently empty)
 - *tests/* contains unit tests of the *showcase* package
-- *data/* and *fig/* contain geographical data and figures 
+- *data/* and *fig/* contain geographical data and figures (data not uploaded to GitHub due to file size constraints)
 - *pyproject.toml* can be used to recreate the Python environment
 
 ### 4. Scientific background
