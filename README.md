@@ -62,3 +62,9 @@ Having conducted an analysis according to Approach A, the goal is to implement A
 [2] "Debris ﬂow susceptibiliy mapping at a regional scale". Horton et al. (2008)
 
 [3] "WhiteboxTools User Manual". Available at: https://www.whiteboxgeo.com/manual/wbt_book/available_tools/hydrological_analysis.html#DInfMassFlux (2023-05-02 14:08)
+
+### 6. Development log
+
+(2023-05-03)
+
+- Started development of showcase package; DEM structured as directed acyclic graph (DAG); tests located under *tests/*.
