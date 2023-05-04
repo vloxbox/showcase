@@ -1,4 +1,5 @@
 import showcase.network as nw
+import networkx
 import numpy as np
 import pytest
 
@@ -15,7 +16,8 @@ def terrain() -> np.ndarray:
 @pytest.fixture
 def network(terrain):
     """Example network"""
-    return nw.Network(terrain)
+    resolution = 10
+    return nw.Network(terrain, resolution)
 
 
 def test_get_neighbour_indices(network):
@@ -39,6 +41,17 @@ def test_graph(network):
     N = network
     nrow, ncol = N.shape
     graph = N.graph
+    # number of nodes must be equal to array dimensions
     assert len(graph) == nrow * ncol
+    # maximum number of edges
     if nrow >= 3 and ncol >= 3:
         assert len(graph.edges) <= (nrow - 2) * (ncol - 2) * 8
+    # index attributes are set correctly
+    x_data = networkx.get_node_attributes(graph, "x")
+    y_data = networkx.get_node_attributes(graph, "y")
+    for node in graph:
+        assert x_data[node] + y_data[node] * nrow == node
+
+
+def test_distance(network):
+    assert network._calc_distance(0, 0, 3, 4) == 5.0
