@@ -65,6 +65,10 @@ Having conducted an analysis according to Approach A, the goal is to implement A
 
 ### 6. Development log
 
+(2023-05-07)
+
+- Added most functionality, restructured code; Flow calculation almost completed (need to finish one function), need to add output representation and unit tests 
+
 (2023-05-03)
 
 - Started development of showcase package; DEM structured as directed acyclic graph (DAG); tests located under *tests/*.
