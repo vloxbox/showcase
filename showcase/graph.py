@@ -1,17 +1,20 @@
+from .parameters import X, Y
+from .raster import Raster
 import itertools as it
 import networkx as nx
 import numpy as np
-from parameters import X, Y
-from raster import Raster
-from typing import List, Set, Tuple
+from typing import List, Tuple
 
 
 class Graph:
     @staticmethod
-    def find_all_successors(graph: nx.DiGraph, source) -> Set:
+    def find_all_successors(graph: nx.DiGraph, source) -> List:
         """Find all successors of one or multiple nodes"""
-        *n, _ = zip(*(nx.edge_dfs(graph, source, orientation="original")))
-        return set(it.chain.from_iterable(n))
+        successors = list(nx.edge_dfs(graph, source, orientation="original"))
+        if successors:
+            *n, _ = zip(*(successors))
+            return list(set(it.chain.from_iterable(n)))
+        return [source]
 
     @staticmethod
     def find_all_start_nodes(graph: nx.DiGraph) -> List:
@@ -38,18 +41,18 @@ class Graph:
 
     @staticmethod
     def get_coordinates(graph: nx.DiGraph, node: int) -> Tuple:
-        return graph[node][X], graph[node][Y]
+        return graph.nodes[node][X], graph.nodes[node][Y]
 
     @staticmethod
     def add_data_from_array(graph: nx.DiGraph, array: np.array, field: str) -> None:
         """Add data from numpy array to graph nodes"""
         # identify nodes by index
-        rows, cols = array.shape
-        for x in cols:
-            for y in rows:
-                idx = Raster.calc_1d_index(x, y)
+        nrow, ncol = array.shape
+        for x in range(ncol):
+            for y in range(nrow):
+                idx = Raster.calc_1d_index(x, y, nrow)
                 # check order of coordinates when retrieving data from array
-                graph[idx][field] = array[y, x]
+                graph.nodes[idx][field] = array[y, x]
 
     @staticmethod
     def to_array(graph: nx.DiGraph, field: str, rows: int, cols: int) -> np.ndarray:

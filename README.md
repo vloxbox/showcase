@@ -65,6 +65,10 @@ Having conducted an analysis according to Approach A, the goal is to implement A
 
 ### 6. Development log
 
+(2023-05-08)
+
+- Started writing tests and debugging
+
 (2023-05-07)
 
 - Added most functionality, restructured code; Flow calculation almost completed (need to finish one function), need to add output representation and unit tests 

@@ -1,9 +1,9 @@
-from geometry import Geometry
-from graph import Graph
+from .geometry import Geometry
+from .graph import Graph
+from .parameters import PERS, DIST, ELEV, ZD, REL, FLUX, DIR
+from .raster import Raster
 import networkx as nx
 import numpy as np
-from parameters import PERS, DIST, ELEV, ZD, REL, FLUX
-from raster import Raster
 from typing import List
 
 
@@ -104,7 +104,7 @@ class Flow:
 
     def calc_z_alpha(self, node: int, child: int) -> float:
         """Loss function
-        
+
         Reduction of energy height due to friction losses
         """
         edge = self.graph[node][child]
@@ -147,15 +147,18 @@ class Flow:
 
     def calc_persistence(self, parent: int, base: int, child: int) -> float:
         """Persistence
-        
+
         Taking into account inertia of debris flow
         """
+        z_delta = self.graph[base][ZD]
+        # special case: no parent (start cell), persistence = 1
+        if not parent:
+            return z_delta
         # coordinates of parent, base and child node
         xp, yp = Graph.get_coordinates(self.graph, parent)
         xb, yb = Graph.get_coordinates(self.graph, base)
         xc, yc = Graph.get_coordinates(self.graph, child)
         angle = Geometry.calc_angle_pbc(xp, yp, xb, yb, xc, yc)
-        z_delta = self.graph[base][ZD]
         return PERS[angle] * z_delta
 
     def calc_routing(self, node: int, child: int) -> float:
@@ -180,11 +183,11 @@ class Flow:
     def find_release_nodes(self) -> List[int]:
         # TODO: cache?, write exceptions, move to graph
         # and generalize to any field and any minimum value
-        return [n for n in self.graph if n[REL] > 0]
+        return [n for n in self.graph if self.graph.nodes[n][REL] > 0]
 
     def find_active_nodes(self) -> nx.DiGraph:
         """Graph size reduction
-        
+
         Limits calculation to cells that participate in flow
         """
         # identify release nodes (REL > 0)
@@ -193,17 +196,17 @@ class Flow:
         successors = Graph.find_all_successors(self.graph, rel_nodes)
         # rewrite to avoid loop
         outside = [n for n in self.graph if n not in successors]
-        return self.graph.copy().remove_edges_from(outside)
+        return self.graph.copy().remove_nodes_from(outside)
 
     def build_model(self, release: np.array) -> None:
         """Flow and mass flux calculation
-        
+
         Results are saved to nodes and edges as attribute data
         """
         # TODO: external and internal methods directly access graph attribute
         # --> write getter and setter
         # add release to nodes
-        Graph.add_data_from_array(self.graph, release)
+        Graph.add_data_from_array(self.graph, release, REL)
         # find active nodes
         active = self.find_active_nodes()
         # sort topologically
@@ -214,10 +217,17 @@ class Flow:
             children = Graph.get_children(active_sorted, node)
             # set ZD to 0 for start nodes, max of incoming for others
             if Graph.is_start_node(active_sorted, node):
-                active_sorted[node][ZD] = 0
+                z_delta = 0
             else:
-                pass
+                z_delta = max([self.graph[p][node][ZD] for p in parents])
+            self.graph[node][ZD] = z_delta
             # calculate direction, persistence, routing for sorted nodes
-            # and edges
-            # after calculating node and edge data for this reduced graph,
-            # attach data to edges and nodes to self.graph
+            # outgoing edges
+            if children:
+                # set delta_z before persistence --> requires two separate loops
+                for child in children:
+                    edge = self.graph[node][child]
+                    edge[ZD] = self.calc_z_delta(node, child)
+                    edge[DIR] = self.calc_direction(node, child)
+                for child in children:
+                    self.graph[node][child] = self.calc_routing(node, child)

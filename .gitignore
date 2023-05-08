@@ -3,3 +3,4 @@ __pycache__
 data/
 whitebox_solution/data/
 token
+dist/
