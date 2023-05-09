@@ -116,16 +116,16 @@ def test_calc_persistence(f2: flow.Flow):
 
 
 def test_calc_routing(f2: flow.Flow):
-    f2.graph.add_node(5, **{X: 2, Y: 1, ELEV: 5.})
-    f2.graph.add_node(6, **{X: 2, Y: 3, ELEV: .0})
-    f2.graph.add_edge(5, 3, **{DIST: 1.})
-    f2.graph.add_edge(3, 6, **{DIST: 1.})
+    f2.graph.add_node(5, **{X: 2, Y: 1, ELEV: 5.0})
+    f2.graph.add_node(6, **{X: 2, Y: 3, ELEV: 0.0})
+    f2.graph.add_edge(5, 3, **{DIST: 1.0})
+    f2.graph.add_edge(3, 6, **{DIST: 1.0})
 
-    f2.graph.nodes[3][ZD] = 2.
-    f2.graph.nodes[3][REL] = .5
-    f2.graph[5][3][FLUX] = 1.
-    f2.graph[1][3][FLUX] = 2.
+    f2.graph.nodes[3][ZD] = 2.0
+    f2.graph.nodes[3][REL] = 0.5
+    f2.graph[5][3][FLUX] = 1.0
+    f2.graph[1][3][FLUX] = 2.0
 
     routing = f2.calc_routing(3, 6)
     # test will fail; need to calculate routing value by hand
-    assert routing == 1.
+    assert routing == 1.0

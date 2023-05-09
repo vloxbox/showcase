@@ -65,6 +65,10 @@ Having conducted an analysis according to Approach A, the goal is to implement A
 
 ### 6. Development log
 
+(2023-05-09)
+
+- Almost finished. Most tests written.
+
 (2023-05-08)
 
 - Started writing tests and debugging

@@ -121,7 +121,7 @@ class Flow:
         z_delta = self.graph.nodes[base][ZD]
         # special case: no parent (start cell), persistence = 1
         if Graph.is_start_node(self.graph, base):
-            return 1.
+            return 1.0
         # coordinates of parent, base and child node
         xp, yp = Graph.get_coordinates(self.graph, parent)
         xb, yb = Graph.get_coordinates(self.graph, base)
@@ -146,7 +146,9 @@ class Flow:
         # incoming flux from parents
         flux = sum([self.graph[p][node][FLUX] for p in parents])
         # add external release of base node and calculate routing
-        return direction * persistence / denominator * (flux + self.graph.nodes[node][REL])
+        return (
+            direction * persistence / denominator * (flux + self.graph.nodes[node][REL])
+        )
 
     def find_release_nodes(self) -> List[int]:
         # TODO: cache?, write exceptions, move to graph
