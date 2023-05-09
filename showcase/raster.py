@@ -46,6 +46,6 @@ class Raster:
         return False
 
     @staticmethod
-    def calc_1d_index(x: int, y: int, nrow: int) -> int:
+    def calc_1d_index(x: int, y: int, ncol: int) -> int:
         """One-dimensional index on 2D array"""
-        return x + y * nrow
+        return y + x * ncol

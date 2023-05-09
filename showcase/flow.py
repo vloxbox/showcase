@@ -67,39 +67,7 @@ class Flow:
             cls
         """
 
-        # instance of a directed (acyclic) graph
-        graph = nx.DiGraph()
-        nrow, ncol = array.shape
-        for x in range(ncol):
-            for y in range(nrow):
-                # integer node index
-                node_index = Raster.calc_1d_index(x, y, nrow)
-                # retrieve elevation at cell x, y
-                elev = array[x, y]
-                if node_index not in graph:
-                    # add node with attributed x, y and elevation to graph
-                    graph.add_node(node_index, x=x, y=y, **{ELEV: elev})
-                neighbour_indices = Raster.get_neighbour_indices(x, y)
-                # iterate over cell's eight neighbour cells
-                for neighbour_index in neighbour_indices:
-                    neighbour_x, neighbour_y = neighbour_index
-                    if Raster.inside(ncol, nrow, neighbour_x, neighbour_y):
-                        n_index = Raster.calc_1d_index(neighbour_x, neighbour_y, nrow)
-                        n_elev = array[neighbour_x, neighbour_y]
-                        if elev > n_elev:
-                            # add neighbour to graph if it is not represented yet
-                            if n_index not in graph:
-                                graph.add_node(
-                                    n_index,
-                                    x=neighbour_x,
-                                    y=neighbour_y,
-                                    **{ELEV: n_elev},
-                                )
-                            distance = Geometry.calc_distance(
-                                x, y, neighbour_x, neighbour_y
-                            )
-                            # create edge from higher to lower cell
-                            graph.add_edge(node_index, n_index, **{DIST: distance})
+        graph = Graph.from_dem(array)
         return cls(graph, resolution, alpha, z_delta_max, exponent)
 
     def calc_z_alpha(self, node: int, child: int) -> float:
@@ -113,13 +81,13 @@ class Flow:
 
     def calc_z_gamma(self, node: int, child: int) -> float:
         """Change in potential energy"""
-        return self.graph[node][ELEV] - self.graph[child][ELEV]
+        return self.graph.nodes[node][ELEV] - self.graph.nodes[child][ELEV]
 
     def calc_z_delta(self, node: int, child: int) -> float:
         """Kinetic energy height"""
         z_alpha = self.calc_z_alpha(node, child)
         z_gamma = self.calc_z_gamma(node, child)
-        z_delta = self.graph[node][ZD] + z_gamma - z_alpha
+        z_delta = self.graph.nodes[node][ZD] + z_gamma - z_alpha
         return max(0, min(z_delta, self.z_delta_max))
 
     def calc_direction(self, node: int, child: int) -> float:
@@ -150,16 +118,16 @@ class Flow:
 
         Taking into account inertia of debris flow
         """
-        z_delta = self.graph[base][ZD]
+        z_delta = self.graph.nodes[base][ZD]
         # special case: no parent (start cell), persistence = 1
-        if not parent:
-            return z_delta
+        if Graph.is_start_node(self.graph, base):
+            return 1.
         # coordinates of parent, base and child node
         xp, yp = Graph.get_coordinates(self.graph, parent)
         xb, yb = Graph.get_coordinates(self.graph, base)
         xc, yc = Graph.get_coordinates(self.graph, child)
         angle = Geometry.calc_angle_pbc(xp, yp, xb, yb, xc, yc)
-        return PERS[angle] * z_delta
+        return PERS[round(angle)] * z_delta
 
     def calc_routing(self, node: int, child: int) -> float:
         """Mass flow calculation"""
@@ -176,9 +144,9 @@ class Flow:
         # get persistence for node -> child
         persistence = sum([self.calc_persistence(p, node, child) for p in parents])
         # incoming flux from parents
-        flux = sum([p[FLUX] for p in parents])
+        flux = sum([self.graph[p][node][FLUX] for p in parents])
         # add external release of base node and calculate routing
-        return direction * persistence / denominator * (flux + node[REL])
+        return direction * persistence / denominator * (flux + self.graph.nodes[node][REL])
 
     def find_release_nodes(self) -> List[int]:
         # TODO: cache?, write exceptions, move to graph
@@ -219,8 +187,8 @@ class Flow:
             if Graph.is_start_node(active_sorted, node):
                 z_delta = 0
             else:
-                z_delta = max([self.graph[p][node][ZD] for p in parents])
-            self.graph[node][ZD] = z_delta
+                z_delta = max([self.graph.nodes[p][node][ZD] for p in parents])
+            self.graph.nodes[node][ZD] = z_delta
             # calculate direction, persistence, routing for sorted nodes
             # outgoing edges
             if children:
@@ -230,4 +198,4 @@ class Flow:
                     edge[ZD] = self.calc_z_delta(node, child)
                     edge[DIR] = self.calc_direction(node, child)
                 for child in children:
-                    self.graph[node][child] = self.calc_routing(node, child)
+                    self.graph[node][child][FLUX] = self.calc_routing(node, child)

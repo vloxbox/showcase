@@ -10,8 +10,8 @@ class Geometry:
     @staticmethod
     def calc_angle_pbc(xp: int, yp: int, xb: int, yb: int, xc: int, yc: int) -> float:
         """Calculate angle [deg] between parent -> base -> child"""
-        v1 = Geometry.unit_vector(xb - xp, yb - yp)
-        v2 = Geometry.unit_vector(xc - xb, yc - yb)
+        v1 = Geometry.unit_vector((xb - xp, yb - yp))
+        v2 = Geometry.unit_vector((xc - xb, yc - yb))
         angle = np.arccos(np.clip(np.dot(v1, v2), -1.0, 1.0))
         return np.rad2deg(angle)
 

@@ -1,4 +1,5 @@
-from .parameters import X, Y
+from .geometry import Geometry
+from .parameters import X, Y, ELEV, DIST
 from .raster import Raster
 import itertools as it
 import networkx as nx
@@ -7,6 +8,37 @@ from typing import List, Tuple
 
 
 class Graph:
+    @staticmethod
+    def from_dem(array: np.array):
+        graph = nx.DiGraph()
+        nrow, ncol = array.shape
+        for x in range(ncol):
+            for y in range(nrow):
+                # integer node index
+                node_index = Raster.calc_1d_index(x, y, ncol)
+                # retrieve elevation at cell x, y
+                elev = array[x, y]
+                if node_index not in graph:
+                    # add node with attributed x, y and elevation to graph
+                    graph.add_node(node_index, **{X: x, Y: y, ELEV: elev})
+                # iterate over cell's eight neighbour cells
+                for neighbour_index in Raster.get_neighbour_indices(x, y):
+                    n_x, n_y = neighbour_index
+                    if Raster.inside(ncol, nrow, *neighbour_index):
+                        n_index = Raster.calc_1d_index(*neighbour_index, ncol)
+                        n_elev = array[n_x, n_y]
+                        if elev > n_elev:
+                            # add neighbour to graph if it is not represented yet
+                            if n_index not in graph:
+                                graph.add_node(
+                                    n_index,
+                                    **{X: n_x, Y: n_y, ELEV: n_elev},
+                                )
+                            distance = Geometry.calc_distance(x, y, *neighbour_index)
+                            # create edge from higher to lower cell
+                            graph.add_edge(node_index, n_index, **{DIST: distance})
+        return graph
+
     @staticmethod
     def find_all_successors(graph: nx.DiGraph, source) -> List:
         """Find all successors of one or multiple nodes"""

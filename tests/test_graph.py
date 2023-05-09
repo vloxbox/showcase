@@ -2,6 +2,7 @@ import networkx as nx
 import numpy as np
 import pytest
 from showcase.graph import Graph
+from showcase.parameters import ELEV
 
 
 @pytest.fixture
@@ -18,14 +19,36 @@ def graph() -> nx.DiGraph:
     g.add_edge(3, 4)
     return g
 
+
 @pytest.fixture
 def data() -> np.ndarray:
     return np.ones((2, 2))
 
 
+@pytest.fixture
+def dem() -> np.ndarray:
+    return np.array([[1.0, 2.0], [0.0, 1.5]])
+
+
+def test_from_dem(dem):
+    g = Graph.from_dem(dem)
+    assert g.nodes[1][ELEV] == 2.0
+    assert set(list(g.nodes)) == set([0, 1, 2, 3])
+    assert set(Graph.get_children(g, 1)) == set([0, 2, 3])
+    assert set(Graph.get_children(g, 0)) == set(
+        [
+            2,
+        ]
+    )
+    assert set(Graph.get_children(g, 3)) == set([0, 2])
+    assert set(list(g.edges)) == set([(1, 0), (1, 2), (1, 3), (3, 0), (3, 2), (0, 2)])
+
+
 def test_find_all_successors(graph):
     assert set(Graph.find_all_successors(graph, 1)) == set([1, 2, 3, 4])
-    assert Graph.find_all_successors(graph, 4) == [4, ]
+    assert Graph.find_all_successors(graph, 4) == [
+        4,
+    ]
 
 
 def test_find_all_start_nodes(graph):
@@ -45,12 +68,15 @@ def test_get_children(graph):
     assert set(Graph.get_children(graph, 1)) == set([2, 3])
     assert Graph.get_children(graph, 4) == []
 
+
 def test_get_parents(graph):
     assert Graph.get_parents(graph, 4) == [3]
+
 
 def test_get_coordinates(graph):
     x, y = Graph.get_coordinates(graph, 0)
     assert (x, y) == (1, 0)
+
 
 def test_add_data_from_array(graph, data):
     field = "test"
@@ -61,3 +87,7 @@ def test_add_data_from_array(graph, data):
             assert g.nodes[i][field] == 1
         else:
             assert field not in g.nodes[i]
+
+
+def test_to_array():
+    assert True
