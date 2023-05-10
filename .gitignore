@@ -4,3 +4,4 @@ data/
 whitebox_solution/data/
 token
 dist/
+.vscode/

@@ -120,7 +120,7 @@ class Flow:
         """
         z_delta = self.graph.nodes[base][ZD]
         # special case: no parent (start cell), persistence = 1
-        if Graph.is_start_node(self.graph, base):
+        if Graph.is_start_node(self.graph, base) or z_delta == 0:
             return 1.0
         # coordinates of parent, base and child node
         xp, yp = Graph.get_coordinates(self.graph, parent)
@@ -139,12 +139,18 @@ class Flow:
             sum([self.calc_persistence(p, node, c) for p in parents]) for c in children
         ]
         denominator = sum([d * p for d, p in zip(dirs, pers)])
+        # special case: denominator == .0
+        if denominator == .0:
+            return .0
         # get direction for node -> child
         direction = self.calc_direction(node, child)
         # get persistence for node -> child
         persistence = sum([self.calc_persistence(p, node, child) for p in parents])
         # incoming flux from parents
-        flux = sum([self.graph[p][node][FLUX] for p in parents])
+        if Graph.is_start_node(self.graph, node):
+            flux = 0
+        else:
+            flux = sum([self.graph[p][node][FLUX] for p in parents])
         # add external release of base node and calculate routing
         return (
             direction * persistence / denominator * (flux + self.graph.nodes[node][REL])
@@ -166,7 +172,9 @@ class Flow:
         successors = Graph.find_all_successors(self.graph, rel_nodes)
         # rewrite to avoid loop
         outside = [n for n in self.graph if n not in successors]
-        return self.graph.copy().remove_nodes_from(outside)
+        copy = self.graph.copy()
+        copy.remove_nodes_from(outside)
+        return copy
 
     def build_model(self, release: np.array) -> None:
         """Flow and mass flux calculation
@@ -183,21 +191,26 @@ class Flow:
         active_sorted = Graph.sort_graph(active)
         # iterate over nodes
         for node in active_sorted:
-            parents = Graph.get_parents(active_sorted, node)
-            children = Graph.get_children(active_sorted, node)
+            parents = Graph.get_parents(active, node)
+            children = Graph.get_children(active, node)
             # set ZD to 0 for start nodes, max of incoming for others
-            if Graph.is_start_node(active_sorted, node):
+            if Graph.is_start_node(active, node):
                 z_delta = 0
             else:
-                z_delta = max([self.graph.nodes[p][node][ZD] for p in parents])
+                z_delta = max([self.graph[p][node][ZD] for p in parents])
             self.graph.nodes[node][ZD] = z_delta
             # calculate direction, persistence, routing for sorted nodes
             # outgoing edges
             if children:
-                # set delta_z before persistence --> requires two separate loops
+                # set delta_z before persistence --> requires separate loops
                 for child in children:
                     edge = self.graph[node][child]
                     edge[ZD] = self.calc_z_delta(node, child)
                     edge[DIR] = self.calc_direction(node, child)
                 for child in children:
                     self.graph[node][child][FLUX] = self.calc_routing(node, child)
+            # assign FLUX value to node
+            self.graph.nodes[node][FLUX] = self.graph.nodes[node][REL]
+            if parents:
+                self.graph.nodes[node][FLUX] += sum([self.graph[p][node][FLUX] for p in parents])
+            

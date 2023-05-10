@@ -30,8 +30,8 @@ def release() -> np.ndarray:
 
 @pytest.fixture
 def f(terrain) -> flow.Flow:
-    return flow.Flow(
-        graph=terrain,
+    return flow.Flow.from_array(
+        array=terrain,
         resolution=RES,
         alpha=ALPHA,
         z_delta_max=ZD_MAX,
@@ -47,10 +47,10 @@ def graph() -> nx.DiGraph:
     g.add_node(2, **{X: 0, Y: 2, ELEV: 1.0})
     g.add_node(3, **{X: 2, Y: 2, ELEV: 3.0})
     g.add_node(4, **{X: 1, Y: 3, ELEV: 1.0})
-    g.add_edge(0, 1, **{DIST: 1.0})
-    g.add_edge(1, 2, **{DIST: np.sqrt(2)})
-    g.add_edge(1, 3, **{DIST: np.sqrt(2)})
-    g.add_edge(3, 4, **{DIST: np.sqrt(2)})
+    g.add_edge(0, 1, **{DIST: 1.0, FLUX: 0})
+    g.add_edge(1, 2, **{DIST: np.sqrt(2), FLUX: 0})
+    g.add_edge(1, 3, **{DIST: np.sqrt(2), FLUX: 0})
+    g.add_edge(3, 4, **{DIST: np.sqrt(2), FLUX: 0})
     return g
 
 
@@ -63,7 +63,7 @@ def f2(graph) -> flow.Flow:
 
 @pytest.fixture
 def release2() -> np.ndarray:
-    return np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0], [0, 0, 0]])
+    return np.array([[0, 1, 0], [3, 0, 0], [0, 0, 0], [0, 0, 0]])
 
 
 def test_from_array(f):
@@ -129,4 +129,50 @@ def test_calc_routing(f2: flow.Flow):
     routing = f2.calc_routing(3, 6)
     assert routing == pytest.approx(3.40423, abs=1e-4)
     routing = f2.calc_routing(3, 4)
-    assert routing == pytest.approx(.09581, abs=1e-4)
+    assert routing == pytest.approx(0.09581, abs=1e-4)
+
+
+def test_find_release_nodes(f2: flow.Flow):
+    f2.graph.add_node(5, **{X: 2, Y: 1, ELEV: 5.0})
+    f2.graph.add_node(6, **{X: 2, Y: 3, ELEV: 0.0})
+    f2.graph.add_edge(5, 3, **{DIST: 1.0})
+    f2.graph.add_edge(3, 6, **{DIST: 1.0})
+
+    f2.graph.nodes[3][REL] = 0.5
+    for node in f2.graph:
+        if node != 3:
+            f2.graph.nodes[node][REL] = 0
+    assert set(f2.find_release_nodes()) == set([3])
+
+    f2.graph.nodes[1][REL] = 0.5
+    assert set(f2.find_release_nodes()) == set([1, 3])
+
+
+def test_find_active_nodes(f2: flow.Flow):
+    for node in f2.graph:
+        f2.graph.nodes[node][REL] = 0
+    f2.graph.nodes[1][REL] = 1
+
+    active = f2.find_active_nodes()
+    active_nodes = set([n for n in active])
+    assert active_nodes == set([1, 2, 3, 4])
+
+
+def test_build_model(
+    f2: flow.Flow, release2: np.ndarray, f: flow.Flow, release: np.ndarray
+):
+    f2.build_model(release2)
+
+    for node in f2.graph:
+        if node == 1:
+            assert f2.graph.nodes[node][REL] == 1
+        elif node == 3:
+            assert f2.graph.nodes[node][REL] == 3
+        else:
+            assert f2.graph.nodes[node][REL] == 0
+    assert f2.graph[1][3][FLUX] == pytest.approx(0.0338, abs=1e-4)
+    assert f2.graph.nodes[3][FLUX] == pytest.approx(3.0338, abs=1e-4)
+
+    f.build_model(release)
+    flux_sum = sum([f.graph.nodes[i][FLUX] for i in f.graph if FLUX in f.graph.nodes[i]])
+    assert flux_sum > 3.

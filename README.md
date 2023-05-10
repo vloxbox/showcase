@@ -1,8 +1,8 @@
 # Runout analysis of debris flows
 
-This repository documents the development of runout models of debris flows. It is under active development as of 2023-05-02.
+This repository documents the development of runout models of debris flows.
 
-**(2023-05-10) Major milestone**: Confirmed routing algorithm working properly in tests
+**(2023-05-10) Package works as expected: Successful modelling of debris flows with algorithms written from scratch.**
 
 ### 1. Task
 
@@ -21,7 +21,8 @@ My approach is divided into the following two parts:
 This repository was created with the [poetry dependency and packaging manager](https://python-poetry.org/).
 
 - *whitebox_solution/* contains a completed runout analysis using Approach A.
-- *showcase/* is the directory for the Python package implementing Approach B (development started 2023-05-04)
+- *showcase_solution/* contains a completed runout analysis using Approach B.
+- *showcase/* is the directory for the Python package implementing Approach B (development successfully finished 2023-05-10)
 - *tests/* contains unit tests of the *showcase* package
 - *data/* and *fig/* contain geographical data and figures (data not uploaded to GitHub due to file size constraints)
 - *pyproject.toml* can be used to recreate the Python environment
@@ -55,7 +56,9 @@ Approach B is described in detail in [1], [2].
 
 The Multiple Flow Direction (MFD) algorithm allows for flow towards all cells that are not parent cells. Persistence weights route mass along the incoming direction of mass flux. In NGU's analysis, mass flux can be routed towards up to five child cells, resulting in a higher likelihood of fan spread (contrary to D-Inf which allows little spread). The energy height is limited by the potential energy in the starting cell and a maximum runout angle.
 
-Having conducted an analysis according to Approach A, the goal is to implement Approach B in Python and compare the results.
+The algorithms of Approach B are written in Python "from scratch". The result (figure below) shows a good match of NVE's debris flow map and own results.
+
+![Debris flow modelled with Horton's algorithm](fig/Own_solution.png)
 
 ### 5. References
 
@@ -70,6 +73,7 @@ Having conducted an analysis according to Approach A, the goal is to implement A
 (2023-05-10)
 
 - Confirmed routing algorithm working properly in tests
+- Successfully modelled debris flow.
 
 (2023-05-09)
 
