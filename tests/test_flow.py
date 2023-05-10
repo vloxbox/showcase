@@ -127,5 +127,6 @@ def test_calc_routing(f2: flow.Flow):
     f2.graph[1][3][FLUX] = 2.0
 
     routing = f2.calc_routing(3, 6)
-    # test will fail; need to calculate routing value by hand
-    assert routing == 1.0
+    assert routing == pytest.approx(3.40423, abs=1e-4)
+    routing = f2.calc_routing(3, 4)
+    assert routing == pytest.approx(.09581, abs=1e-4)

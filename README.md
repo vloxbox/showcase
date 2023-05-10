@@ -2,6 +2,8 @@
 
 This repository documents the development of runout models of debris flows. It is under active development as of 2023-05-02.
 
+**(2023-05-10) Major milestone**: Confirmed routing algorithm working properly in tests
+
 ### 1. Task
 
 The task is to present my approach to runout modelling of debris flows using Python.
@@ -64,6 +66,10 @@ Having conducted an analysis according to Approach A, the goal is to implement A
 [3] "WhiteboxTools User Manual". Available at: https://www.whiteboxgeo.com/manual/wbt_book/available_tools/hydrological_analysis.html#DInfMassFlux (2023-05-02 14:08)
 
 ### 6. Development log
+
+(2023-05-10)
+
+- Confirmed routing algorithm working properly in tests
 
 (2023-05-09)
 
